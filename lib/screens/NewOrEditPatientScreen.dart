@@ -61,10 +61,21 @@ class _NewOrEditPatientFormState extends State<_NewOrEditPatientForm> {
 
   final Patient _existingPatient;
   bool _editModeOn;
+  bool _vLoad;
   TextEditingController _artNumberCtr = TextEditingController();
   TextEditingController _villageCtr = TextEditingController();
   TextEditingController _districtCtr = TextEditingController();
   TextEditingController _phoneNumberCtr = TextEditingController();
+
+ String _selectedDistrict;
+ static final districts = ['Berea','Butha-Buthe','Leribe','Mafeteng','Maseru','Mohales\'s Hoek','Mokhotlong','Qacha\'s Nek','Quthing','Thaba-Tseka', ];
+
+  String _selectedViralLoad;
+  static final viralloads = [
+    'Suppressed',
+    'Unsuppressed',
+    'N/A',
+  ];
 
   _NewOrEditPatientFormState(this._existingPatient) {
     _editModeOn = _existingPatient != null;
@@ -149,21 +160,33 @@ class _NewOrEditPatientFormState extends State<_NewOrEditPatientForm> {
                     }
                   },
                 ),
+                Text('Select District'),
+                DropdownButtonFormField<String>(
+                    value: _selectedDistrict,
+                    onChanged: (String newValue) {
+                      setState(() {
+                        _selectedDistrict = newValue;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Please select the district which you reside';
+                      }
+                    },
+                    items: districts
+                        .map<DropdownMenuItem<String>>((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                  ),
                 Text('Village'),
                 TextFormField(
                   controller: _villageCtr,
                   validator: (value) {
                     if (value.isEmpty) {
                       return 'Please enter a village';
-                    }
-                  },
-                ),
-                Text('District'),
-                TextFormField(
-                  controller: _districtCtr,
-                  validator: (value) {
-                    if (value.isEmpty) {
-                      return 'Please enter a district';
                     }
                   },
                 ),
@@ -176,6 +199,27 @@ class _NewOrEditPatientFormState extends State<_NewOrEditPatientForm> {
                     }
                   },
                 ),
+                Text('ViralLoad Status'),
+                DropdownButtonFormField<String>(
+                    value: _selectedViralLoad,
+                    onChanged: (String newValue) {
+                      setState(() {
+                        _selectedViralLoad = newValue;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Please select the correct viral Load';
+                      }
+                    },
+                    items: viralloads
+                        .map<DropdownMenuItem<String>>((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                  )
               ],
             ),
           ),
@@ -238,16 +282,24 @@ class _NewOrEditPatientFormState extends State<_NewOrEditPatientForm> {
     if (_formKey.currentState.validate()) {
       if (_editModeOn) { // editing an existing patient
         newPatient = _existingPatient;
+        newPatient.district = _selectedDistrict;
         newPatient.village = _villageCtr.text;
-        newPatient.district = _districtCtr.text;
         newPatient.phoneNumber = _phoneNumberCtr.text;
+        //newPatient._vlSuppressed = _vLoad; Unable to use this variable because its private on Patient class
         print('EDITED PATIENT:\n$newPatient');
       } else { // creating a new patient
-        newPatient = Patient(_artNumberCtr.text, _districtCtr.text, _phoneNumberCtr.text, _villageCtr.text);
+        if(_selectedViralLoad=="Suppressed"){// Check the status of vLoad selected and assign accordingly
+          _vLoad=true;
+        }else if(_selectedViralLoad=="Unsuppressed"){
+          _vLoad=false;
+        }else{
+          _vLoad=null;//vLoad N/A
+        }
+        newPatient = Patient(_artNumberCtr.text, _selectedDistrict, _villageCtr.text, _phoneNumberCtr.text,_vLoad);
         print('NEW PATIENT:\n$newPatient');
       }
       await PatientBloc.instance.sinkPatientData(newPatient);
-      Navigator.of(context).popUntil(ModalRoute.withName('/patient')); // close New Patient screen
+      Navigator.of(context).popUntil(ModalRoute.withName('/')); // close New Patient screen
       final String finishNotification = _editModeOn
           ? 'Changes saved'
           : 'New patient created successfully';
