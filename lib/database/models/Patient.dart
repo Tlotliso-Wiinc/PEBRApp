@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:pebrapp/database/DatabaseProvider.dart';
-import 'package:pebrapp/database/models/ARTRefill.dart';
 import 'package:pebrapp/database/models/PreferenceAssessment.dart';
 
 class Patient {
@@ -16,6 +15,7 @@ class Patient {
   static final colVillage = 'village'; // nullable
   static final colDistrict = 'district'; // nullable
   static final colPhoneNumber = 'phone_number'; // nullable
+  static final colLatestPreferenceAssessment = 'latest_preference_assessment'; // foreign key to [PreferenceAssessment].id, nullable
 
   String _artNumber;
   DateTime _createdDate;
@@ -24,18 +24,16 @@ class Patient {
   String village;
   String district;
   String phoneNumber;
-  // The following are not columns in the database, just the objects for easier
-  // access to the latest PreferenceAssessment/ARTRefill.
-  // Will be null until the [initializePreferenceAssessmentField]/
-  // [initializeARTRefillField] method was called.
+  int _latestPreferenceAssessmentId;
+  // The following is not a column in the database, just the object for easier access to the latest PreferenceAssessment.
+  // Will be null until the [initializePreferenceAssessmentField] method was called.
   PreferenceAssessment latestPreferenceAssessment;
-  ARTRefill latestARTRefill;
 
 
   // Constructors
   // ------------
 
-  Patient(this._artNumber, this.district, this.phoneNumber, this.village) {
+  Patient(this._artNumber, this.district, this.village, this.phoneNumber, this._vlSuppressed) {
     this._isActivated = true;
   }
 
@@ -49,6 +47,7 @@ class Patient {
     this.village = map[colVillage];
     this.district = map[colDistrict];
     this.phoneNumber = map[colPhoneNumber];
+    this._latestPreferenceAssessmentId = map[colLatestPreferenceAssessment];
   }
 
   toMap() {
@@ -60,6 +59,7 @@ class Patient {
     map[colVillage] = village;
     map[colDistrict] = district;
     map[colPhoneNumber] = phoneNumber;
+    map[colLatestPreferenceAssessment] = _latestPreferenceAssessmentId;
     return map;
   }
 
@@ -72,7 +72,8 @@ class Patient {
     _vlSuppressed: $_vlSuppressed,
     _village: $village,
     _district: $district,
-    _phoneNumber: $phoneNumber
+    _phoneNumber: $phoneNumber,
+    _latestPreferenceAssessment: $_latestPreferenceAssessmentId
     ''';
   }
 
@@ -80,12 +81,6 @@ class Patient {
   Future<void> initializePreferenceAssessmentField() async {
     PreferenceAssessment pa = await DatabaseProvider().retrieveLatestPreferenceAssessmentForPatient(_artNumber);
     this.latestPreferenceAssessment = pa;
-  }
-
-  /// Initializes the field [latestARTRefill] with the latest data from the database.
-  Future<void> initializeARTRefillField() async {
-    ARTRefill artRefill = await DatabaseProvider().retrieveLatestARTRefillForPatient(_artNumber);
-    this.latestARTRefill = artRefill;
   }
 
   /// Do not set the createdDate manually! The DatabaseProvider sets the date
